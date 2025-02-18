@@ -6,7 +6,7 @@ dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('Tasks')
 
 def lambda_handler(event, context):
-    print(f"i am the event: {event}", "END-Event")  # Log the event object to inspect its structure
+    print(f"Our event: {event}", "END-Event") 
     operation = event.get('httpMethod')
 
     if operation == 'GET':
@@ -53,7 +53,7 @@ def create_task(event):
 def get_task(event):
     if(event.get('httpMethod') == 'GET' and event.get('queryStringParameters', {}).get('TaskID') == 'all'):
         try:
-            print("i am getting all Items")
+            print("Getting all Items")
             response = table.scan()
             return {
                 'statusCode': 200,
