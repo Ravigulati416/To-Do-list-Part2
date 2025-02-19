@@ -51,27 +51,25 @@ def create_task(event):
         }
 
 def get_task(event):
-    if(event.get('httpMethod') == 'GET' and event.get('queryStringParameters', {}).get('TaskID') == 'all'):
-        try:
+    try:
+        http_method = event.get('httpMethod')
+        query_params = event.get('queryStringParameters', {})
+        task_id = query_params.get('TaskID')
+        
+        if http_method == 'GET' and task_id == 'all':
             print("Getting all Items")
             response = table.scan()
             return {
                 'statusCode': 200,
                 'body': json.dumps(response['Items'])
             }
-        except ClientError as e:
+
+        if not task_id:
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': e.response['Error']['Message']})
+                'body': json.dumps('TaskID is required')
             }
-    task_id = event.get('queryStringParameters', {}).get('TaskID')
-    if not task_id:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('TaskID is required')
-        }
 
-    try:
         response = table.get_item(Key={'TaskID': task_id})
         if 'Item' in response:
             return {
