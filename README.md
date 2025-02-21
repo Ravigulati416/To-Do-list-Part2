@@ -19,3 +19,14 @@ Application Workflow:
 - Deleting a Task: When a user deletes a task, the web application sends a DELETE request to the API Gateway, which triggers a Lambda function. The Lambda function deletes the task from DynamoDB and updates the UI.
 
 - Viewing All Tasks: When a user wants to view all tasks, the web application sends a GET request to the API Gateway, which triggers a Lambda function. The Lambda function retrieves all tasks from DynamoDB and sends them back to the web application to be displayed in a table.
+
+
+Files Details:
+- To-do-Lambda-Function.py : Python code to access dynamoDB from Lambda Function.
+
+- Bucket-Policy.txt : S3 Bucket Policy for statis website Hosting.
+Remember to change your bucket name in resource field.
+
+- <API Gateway> : Directory with Mapping templates for GET,PUT,POST and DELETE method.
+
+- <FrontEnd> : Directory with all the files required for Frontend of our web application and needs to eb uploaded on Amazon S3.Remember to update value of "apiUrl" with your API gateway URL before uploading to S3.
