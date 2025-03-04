@@ -1,12 +1,18 @@
 import json
 import boto3
+import datetime
 from botocore.exceptions import ClientError
 
 dynamodb = boto3.resource('dynamodb')
+eventbridge = boto3.client('scheduler')
+sns = boto3.client('sns')
+
 table = dynamodb.Table('Tasks')
+sns_topic_arn = 'arn:aws:sns:us-east-1:891377337910:To-Do-Notification'
+role_arn = 'arn:aws:iam::891377337910:role/service-role/Amazon_EventBridge_Scheduler_LAMBDA_185fd5ef33'
 
 def lambda_handler(event, context):
-    print(f"Our event: {event}", "END-Event") 
+    print(f"Our event: {event}", "END-Event")
     operation = event.get('httpMethod')
 
     if operation == 'GET':
@@ -33,8 +39,17 @@ def create_task(event):
                 'statusCode': 400,
                 'body': json.dumps('Invalid request body')
             }
-        
+
         table.put_item(Item=body)
+
+        # Schedule EventBridge Scheduler to publish to SNS topic
+        task_time_str = body.get('TaskTime')
+        if task_time_str:
+            print("i am trying to schedule Event")
+            schedule_time = convert_to_iso8601(task_time_str)
+            print(f"schedule time: {schedule_time}")
+            schedule_eventbridge(body, schedule_time)
+
         return {
             'statusCode': 200,
             'body': json.dumps('Task created successfully')
@@ -50,12 +65,47 @@ def create_task(event):
             'body': json.dumps({'error': e.response['Error']['Message']})
         }
 
+def convert_to_iso8601(task_time_str):
+    # Parse the provided date and time in the format "YYYY-MM-DD HH:MM"
+    task_time = datetime.datetime.strptime(task_time_str, "%Y-%m-%d %H:%M")
+
+    # Convert to ISO 8601 format
+    schedule_time = task_time.isoformat()
+    return schedule_time
+
+
+def schedule_eventbridge(task, schedule_time):
+    schedule_name = f"trigger_task_{task['TaskID']}"
+
+    message = (
+        f"This is a reminder mail for your To-Do item: {task['TaskName']}.\n\n"
+        f"Please check below description of that To-Do Task for more details:\n"
+        f"{task['TaskDescription']}"
+    )
+    
+    try:
+        eventbridge.create_schedule(
+            Name=schedule_name,
+            ScheduleExpression=f"at({schedule_time})",
+            Target={
+                'Arn': sns_topic_arn,
+                'RoleArn': role_arn,
+                'Input': message
+            },
+            State='ENABLED',
+            FlexibleTimeWindow={
+                'Mode': 'OFF'  # 'OFF' means the schedule will trigger exactly at the specified time
+            }
+        )
+    except ClientError as e:
+        print(f"Error scheduling EventBridge Scheduler: {e}")
+
 def get_task(event):
     try:
         http_method = event.get('httpMethod')
         query_params = event.get('queryStringParameters', {})
         task_id = query_params.get('TaskID')
-        
+
         if http_method == 'GET' and task_id == 'all':
             print("Getting all Items")
             response = table.scan()
@@ -94,7 +144,7 @@ def update_task(event):
             body = json.loads(body)
         elif not isinstance(body, dict):
             raise ValueError("Request body is not a valid JSON object")
-        
+
         task_id = body.get('TaskID')
         if not task_id:
             raise ValueError("TaskID is required")
@@ -105,7 +155,7 @@ def update_task(event):
             ':desc': body['TaskDescription'],
             ':status': body['TaskStatus']
         }
-        
+
         table.update_item(
             Key={'TaskID': task_id},
             UpdateExpression=update_expression,
@@ -136,6 +186,8 @@ def delete_task(event):
 
     try:
         table.delete_item(Key={'TaskID': task_id})
+        schedule_name = f"trigger_task_{task_id}"
+        eventbridge.delete_schedule(Name=schedule_name)
         return {
             'statusCode': 200,
             'body': json.dumps('Task deleted successfully')

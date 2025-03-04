@@ -1,6 +1,6 @@
-const apiUrl = "https://cjab2nkr04.execute-api.us-east-1.amazonaws.com/Prod";
+const apiUrl = "https://kolmu7gs94.execute-api.us-east-1.amazonaws.com/prod";
 
-//Function to add a new task
+// Function to add a new task
 function addTask() {
     const taskInput = document.getElementById('new-task');
     const taskText = taskInput.value.trim();
@@ -8,8 +8,8 @@ function addTask() {
     if (taskText) {
         const taskId = prompt("Enter task ID:");
         if (taskId === null) {
-			taskInput.value = '';
-            return; 
+            taskInput.value = '';
+            return;
         }
 
         checkIfTaskIdExists(taskId).then(exists => {
@@ -18,20 +18,35 @@ function addTask() {
             } else {
                 const taskDescription = prompt("Enter task description:");
                 if (taskDescription === null) {
-					taskInput.value = '';
-                    return; 
+                    taskInput.value = '';
+                    return;
                 }
 
                 const taskStatus = prompt("Enter task status:");
                 if (taskStatus === null) {
-					taskInput.value = '';
-                    return; 
+                    taskInput.value = '';
+                    return;
                 }
+
+                // Prompt for task time with a date picker and remove "T"
+                let defaultTaskTime = new Date().toISOString().slice(0, 16).replace("T", " ");
+                let taskTime = prompt("Enter task time (yyyy-mm-dd hh:mm):", defaultTaskTime);
+
+                // Validate the task time format
+                while (!isValidTaskTime(taskTime)) {
+                    taskTime = prompt("Please enter task time in the correct format (yyyy-mm-dd hh:mm):", defaultTaskTime);
+                    if (taskTime === null) {
+                        taskInput.value = '';
+                        return;
+                    }
+                }
+
                 const taskData = {
                     TaskID: taskId,
                     TaskName: taskText,
                     TaskDescription: taskDescription,
-                    TaskStatus: taskStatus
+                    TaskStatus: taskStatus,
+                    TaskTime: taskTime
                 };
 
                 fetch(apiUrl, {
@@ -49,9 +64,10 @@ function addTask() {
                 })
                 .then(data => {
                     console.log("Task added successfully:", data);
-                    taskInput.value = ''; 
+                    taskInput.value = '';
+
                     if (document.getElementById('task-table').style.display === 'table') {
-                        getAllTasks(); 
+                        getAllTasks();
                     }
                     displayConfirmationMessage();
                 })
@@ -64,7 +80,15 @@ function addTask() {
             console.error("Error checking task ID:", error);
             alert("Failed to check task ID. Please try again.");
         });
+    } else {
+        alert("Please enter a task name.");
     }
+}
+
+// Function to validate task time format (yyyy-mm-dd hh:mm)
+function isValidTaskTime(taskTime) {
+    const regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+    return regex.test(taskTime);
 }
 
 // Function to check if TaskID exists
@@ -78,7 +102,7 @@ function checkIfTaskIdExists(taskID) {
     .then(response => response.json())
     .then(data => {
         if (data.body) {
-            data = JSON.parse(data.body); 
+            data = JSON.parse(data.body);
         }
         console.log("Check TaskID Response:", data);
         return data && data.TaskID === taskID;
@@ -95,7 +119,7 @@ function displayConfirmationMessage() {
     confirmationMessage.style.display = 'block';
     setTimeout(() => {
         confirmationMessage.style.display = 'none';
-    }, 3000); 
+    }, 3000);
 }
 
 // Function to delete a task and remove it from the DOM
@@ -145,10 +169,10 @@ function getAllTasks() {
     document.getElementById('task-table').style.display = 'table';
     const cacheBuster = new Date().getTime(); // Unique timestamp to avoid caching
     fetch(`${apiUrl}?TaskID=all&cb=${cacheBuster}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json"
-            }
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
     })
     .then(response => response.json())
     .then(data => {
@@ -188,6 +212,10 @@ function displayTasksInTable(tasks) {
         cellStatus.textContent = task.TaskStatus;
         row.appendChild(cellStatus);
 
+        const cellTime = document.createElement('td');
+        cellTime.textContent = task.TaskTime;
+        row.appendChild(cellTime);
+
         tableBody.appendChild(row);
     });
 }
@@ -195,5 +223,5 @@ function displayTasksInTable(tasks) {
 // Function to clear the TaskID input field
 function clearTaskIDInput() {
     const taskIDInput = document.getElementById('task-id');
-    taskIDInput.value = ''; 
+    taskIDInput.value = '';
 }
