@@ -11,12 +11,16 @@ Key Components
 
 4. Amazon S3: A scalable object storage service. It hosts the static files for the web application, such as HTML, CSS, and JavaScript, making the app accessible via a web browser.So basically it is being used for our Web Application hosting.
 
+5. Amazon EventBridge Scheduler: A serverless event bus service that allows scheduling of tasks based on specified timings or triggers. It is used to trigger a Lambda function at the scheduled time to send reminders for tasks, ensuring timely notifications.
+
+6. Amazon SNS (Simple Notification Service): A fully managed messaging service used for sending notifications. In this setup, SNS is used to send reminder emails for the tasks. The emails include the task's name and description to keep users informed and organized.
+
 Application Workflow:
 - User Interaction(FrontEnd in Amazon S3): Users interact with the web application through a user-friendly interface, where they can add new tasks, delete existing ones, and view all tasks.Only FrontEnd firectory files needs to be uploaded on Amazon S3.
 
-- Adding a Task: When a user adds a task, the web application sends a POST request to the API Gateway, which triggers a Lambda function. The Lambda function writes the task data to DynamoDB.
+- Adding a Task: When a user adds a task, the web application sends a POST request to the API Gateway, which triggers a Lambda function. The Lambda function writes the task data to DynamoDB and Schedule an Event to send a reminder Email subscribed to the SNS topic.
 
-- Deleting a Task: When a user deletes a task, the web application sends a DELETE request to the API Gateway, which triggers a Lambda function. The Lambda function deletes the task from DynamoDB and updates the UI.
+- Deleting a Task: When a user deletes a task, the web application sends a DELETE request to the API Gateway, which triggers a Lambda function. The Lambda function deletes the task from DynamoDB, Delete the scheduled Event from EventBridge and updates the UI.
 
 - Viewing All Tasks: When a user wants to view all tasks, the web application sends a GET request to the API Gateway, which triggers a Lambda function. The Lambda function retrieves all tasks from DynamoDB and sends them back to the web application to be displayed in a table.
 
@@ -27,6 +31,6 @@ Files Details:
 - Bucket-Policy.txt : S3 Bucket Policy for statis website Hosting.
 Remember to change your bucket name in resource field.
 
-- <API Gateway> : Directory with Mapping templates for GET,PUT,POST and DELETE method.
+- API Gateway : Directory with Mapping templates for GET,PUT,POST and DELETE method.
 
-- <FrontEnd> : Directory with all the files required for Frontend of our web application and needs to eb uploaded on Amazon S3.Remember to update value of "apiUrl" with your API gateway URL before uploading to S3.
+- FrontEnd : Directory with all the files required for Frontend of our web application and needs to eb uploaded on Amazon S3.Remember to update value of "apiUrl" with your API gateway URL before uploading to S3.
